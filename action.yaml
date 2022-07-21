@@ -20,6 +20,10 @@ inputs:
     description: "Extra files included in the archive."
     required: true
     default: ""
+  package-id:
+    description: "The package-id to build"
+    required: true
+    default: ""
 
 runs:
   using: composite
@@ -31,10 +35,24 @@ runs:
         profile: minimal
         target: ${{ inputs.target }}
 
+  - name: Setup build arguments
+    id: build-arguments
+    env:
+      PACKAGE: ${{ inputs.package-id }}
+    uses: actions/github-script@v6
+    with:
+      result-encoding: string
+      script: |
+        let result = "";
+        if (process.env.PACKAGE) {
+          result += ` --package ${process.env.PACKAGE}`;
+        }
+        return result;
+
   - name: Setup Cache
     uses: Swatinem/rust-cache@v2
     with:
-      key: ${{ inputs.target }}
+      key: ${{ inputs.target }}${{ inputs.package-id }}
 
   - name: Build
     uses: actions-rs/cargo@v1
@@ -42,6 +60,7 @@ runs:
       command: build
       use-cross: ${{ inputs.use-cross }}
       args: >
+        ${{ steps.build-arguments.outputs.result }}
         --release
         --target ${{ inputs.target }}
   - name: Package
