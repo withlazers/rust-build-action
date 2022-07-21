@@ -1,0 +1,64 @@
+name: Build Rust
+description: >
+  Builds a rust project and uploads the result as an artifact. The artifact
+  will contain a single file with the pattern <archive-prefix>-<target>.tar.gz
+inputs:
+  target:
+    description: "the build target"
+    required: true
+  use-cross:
+    description: "use cross"
+    required: true
+    default: "false"
+  binaries:
+    description: "whitespace seperated list of binaries to include"
+    required: true
+  archive-prefix:
+    description: "Prefix for the archive. "
+    required: true
+  extra-files:
+    description: "Extra files included in the archive."
+    required: true
+    default: ""
+
+runs:
+  using: composite
+  steps:
+  - name: Install Toolchain
+    uses: actions-rs/toolchain@v1
+    with:
+        toolchain: stable
+        profile: minimal
+        target: ${{ inputs.target }}
+
+  - name: Setup Cache
+    uses: Swatinem/rust-cache@v2
+    with:
+      key: ${{ inputs.target }}
+
+  - name: Build
+    uses: actions-rs/cargo@v1
+    with:
+      command: build
+      use-cross: ${{ inputs.use-cross }}
+      args: >
+        --release
+        --target ${{ inputs.target }}
+  - name: Package
+    shell: bash
+    env:
+      BINARIES: ${{ inputs.binaries }}
+      TARGET: ${{ inputs.target }}
+      ARCHIVE_PREFIX: ${{ inputs.archive-prefix }}
+      EXTRA_FILES: ${{ inputs.extra-files }}
+    run: |
+      mkdir bin
+      for bin in ${BINARIES}; do
+        cp "target/${TARGET}/release/${bin}" bin
+      done
+      tar czf ${ARCHIVE_PREFIX}-${TARGET}.tar.gz ${EXTRA_FILES} bin
+  - name: Upload Artifact
+    uses: actions/upload-artifact@v3
+    with:
+      name: ${{ inputs.target }}
+      path: ${{ inputs.archive-prefix }}-${{ inputs.target }}.tar.gz
