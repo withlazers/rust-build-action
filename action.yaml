@@ -52,7 +52,8 @@ runs:
   - name: Setup Cache
     uses: Swatinem/rust-cache@v2
     with:
-      key: ${{ inputs.target }}${{ inputs.package-id }}
+      shared-key: ${{ inputs.target }}${{ inputs.package-id }}
+      cache-on-failure: "true"
 
   - name: Build
     uses: actions-rs/cargo@v1
