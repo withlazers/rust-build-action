@@ -28,12 +28,7 @@ inputs:
 runs:
   using: composite
   steps:
-  - name: Install Toolchain
-    uses: actions-rs/toolchain@v1
-    with:
-        toolchain: stable
-        profile: minimal
-        target: ${{ inputs.target }}
+  - uses: dtolnay/rust-toolchain@stable
 
   - name: Setup build arguments
     id: build-arguments
@@ -56,14 +51,20 @@ runs:
       cache-on-failure: "true"
 
   - name: Build
-    uses: actions-rs/cargo@v1
-    with:
-      command: build
-      use-cross: ${{ inputs.use-cross }}
-      args: >
-        ${{ steps.build-arguments.outputs.result }}
-        --release
-        --target ${{ inputs.target }}
+    shell: bash
+    env:
+      USE_CROSS: ${{ inputs.use-cross }}
+      BUILD_ARGUMENTS: ${{ steps.build-arguments.outputs.result }}
+      TARGET: ${{ inputs.target }}
+    run: |
+      if [ "${USE_CROSS}" = "true" ]; then
+        cargo install cross
+        CARGO=cross
+      else
+        CARGO=cargo
+      fi
+      ${CARGO} build ${BUILD_ARGUMENTS} --release --target "${TARGET}"
+
   - name: Package
     shell: bash
     env:
