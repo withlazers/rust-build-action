@@ -79,7 +79,7 @@ runs:
       done
       tar czf ${ARCHIVE_PREFIX}-${TARGET}.tar.gz ${EXTRA_FILES} bin
   - name: Upload Artifact
-    uses: actions/upload-artifact@v3
+    uses: actions/upload-artifact@v4
     with:
       name: ${{ inputs.target }}
       path: ${{ inputs.archive-prefix }}-${{ inputs.target }}.tar.gz
