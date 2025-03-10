@@ -23,7 +23,7 @@ inputs:
   upx:
     description: "Compress binaries with upx"
     required: true
-    default: ""
+    default: "false"
   upx-version:
     description: "Version of upx to use"
     required: true
@@ -86,7 +86,7 @@ runs:
 
   - name: Compress binary
     shell: bash
-    if:  ${{ inputs.upx }} != ""
+    if:  ${{ inputs.upx }} == true
     env:
       BINARIES: ${{ inputs.binaries }}
       TARGET: ${{ inputs.target }}
