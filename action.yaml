@@ -20,6 +20,18 @@ inputs:
     description: "Extra files included in the archive."
     required: true
     default: ""
+  upx:
+    description: "Compress binaries with upx"
+    required: true
+    default: ""
+  upx-version:
+    description: "Version of upx to use"
+    required: true
+    default: "5.0.0"
+  upx-args:
+    description: "Arguments to pass to upx"
+    required: true
+    default: "--best --lzma"
   package-id:
     description: "The package-id to build"
     required: true
@@ -44,6 +56,13 @@ runs:
         }
         return result;
 
+  - name: Setup rustup target
+    shell: bash
+    run: |
+      if [ "${USE_CROSS}" != "true" ]; then
+        rustup target add ${{ inputs.target }}
+      fi
+
   - name: Setup Cache
     uses: Swatinem/rust-cache@v2
     with:
@@ -65,6 +84,35 @@ runs:
       fi
       ${CARGO} build ${BUILD_ARGUMENTS} --release --target "${TARGET}"
 
+  - name: Compress binary
+    shell: bash
+    if:  ${{ inputs.upx }} != ""
+    env:
+      BINARIES: ${{ inputs.binaries }}
+      TARGET: ${{ inputs.target }}
+      UPX_ARGS: ${{ inputs.upx-args }}
+      UPX_VERSION: ${{ inputs.upx-version }}
+    run: |
+      case "$(uname -m)" in
+        x86_64)
+          arch="amd64"
+          ;;
+        aarch64)
+          arch="arm64"
+          ;;
+        *)
+          echo "Unsupported architecture"
+          exit 1
+          ;;
+      esac
+
+      curl -o upx.tar.xz -L https://github.com/upx/upx/releases/download/v${UPX_VERSION}/upx-${UPX_VERSION}-${arch}_linux.tar.xz
+      tar xf upx.tar.xz
+      UPX=$PWD/upx-5.0.0-amd64_linux/upx
+
+      for bin in ${BINARIES}; do
+        "$UPX" $UPX_ARGS "target/${TARGET}/release/${bin}"
+      done
   - name: Package
     shell: bash
     env:
